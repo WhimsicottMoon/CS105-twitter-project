@@ -3,6 +3,7 @@
 
 import os
 import json
+import sys
 from data import word_sentiments, load_tweets
 from datetime import datetime
 from geo import us_states, geo_distance, make_position, longitude, latitude
@@ -29,6 +30,7 @@ a field they fill out themselves - it does not always have the same information 
 not formatted in any particular (or sometimes) understandable way
 '''
 
+#just get the JSON info from the files
 all_data = []
 path = "C:/Veronica - 2/Harvard Stuff/Sophomore Year/CS 105/CS105 Twitter/JSON Files/"
 for filename in os.listdir(path):
@@ -36,9 +38,14 @@ for filename in os.listdir(path):
         data = json.load(read_file)
         all_data = all_data + data
 
-for i in range(0, 2):
+#map the ones with location data to Tweets
+for i in range(0, len(all_data)):
     tweet = data[i]
-    print(tweet["text"])
+    #print(tweet)
+    if(tweet['place'] != None or tweet['coordinates'] != None):
+        non_bmp_map = dict.fromkeys(range(0x10000, sys.maxunicode + 1), 0xfffd)
+        print(str(tweet).translate(non_bmp_map))
+        #print(tweet)
 
 #to manually find viable tweets: place": {"id"
 
