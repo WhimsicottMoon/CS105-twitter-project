@@ -1,6 +1,7 @@
 #Veronica Tang
 #12/08/19
 
+import os
 import json
 from data import word_sentiments, load_tweets
 from datetime import datetime
@@ -27,6 +28,18 @@ Note that we unfortunately cannot use the loctions of the users since this seems
 a field they fill out themselves - it does not always have the same information and is
 not formatted in any particular (or sometimes) understandable way
 '''
+
+all_data = []
+path = "C:/Veronica - 2/Harvard Stuff/Sophomore Year/CS 105/CS105 Twitter/JSON Files/"
+for filename in os.listdir(path):
+    with open(path+filename) as read_file:
+        data = json.load(read_file)
+        all_data = all_data + data
+
+for i in range(0, 2):
+    tweet = data[i]
+    print(tweet["text"])
+
 #to manually find viable tweets: place": {"id"
 
 ##########
@@ -112,7 +125,7 @@ def find_centroid(polygon):
 #TODO check that Baby Veronica did the math correctly
 def find_state_center(polygons):
     """Compute the geographic center of a state, averaged over its polygons.
-    The center is the average position of centroids of the polygons in polygons,
+    The center is the average position of centroids of the polygons in 'polygons',
     weighted by the area of those polygons.
     Arguments:
     polygons -- a list of polygons
