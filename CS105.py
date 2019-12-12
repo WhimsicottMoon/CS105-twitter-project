@@ -93,65 +93,13 @@ def print_num_tweets_per_state(tweets):
             print(s + ': 0')
     #print(num)
 
-
-#################
-# Some Geometry #
-#################
-
-#TODO check that Baby Veronica did the math correctly
-def find_centroid(polygon):
-    """
-    Finds the centroid of a polygon.
-    http://en.wikipedia.org/wiki/Centroid#Centroid_of_polygon
-    polygon -- A list of positions, in which the first and last are the same
-    Returns: 3 numbers; centroid latitude, centroid longitude, and polygon area
-    """
-    area = 0
-    x = 0
-    y = 0
-    for index in range (0, len(polygon)-1):
-        area += (latitude(polygon[index]) * longitude(polygon[index + 1])) - (latitude(polygon[index + 1]) * longitude(polygon[index]))
-    if(area == 0):
-        return latitude(polygon[0]), longitude(polygon[0]),0
-    for index in range (0, len(polygon)-1):
-        x += (latitude(polygon[index]) + latitude(polygon[index + 1])) * ((latitude(polygon[index])*longitude(polygon[index + 1])) - (latitude(polygon[index + 1])*longitude(polygon[index])))
-        y += (longitude(polygon[index]) + longitude(polygon[index + 1])) * ((latitude(polygon[index])*longitude(polygon[index + 1])) - (latitude(polygon[index + 1])*longitude(polygon[index])))
-    area = area/2
-    x = x/(6*area)
-    y = y/(6*area)
-    return (x, y, abs(area))
-
-#TODO check that Baby Veronica did the math correctly
-def find_state_center(polygons):
-    """Computes the geographic center of a state, averaged over its polygons.
-    The center is the average position of centroids of the polygons in 'polygons',
-    weighted by the area of those polygons.
-    Arguments:
-    polygons -- a list of polygons
-
-    >>> ca = find_state_center(us_states['CA'])  # California
-    >>> round(latitude(ca), 5)
-    37.25389
-    >>> round(longitude(ca), 5)
-    -119.61439
-
-    >>> hi = find_state_center(us_states['HI'])  # Hawaii
-    >>> round(latitude(hi), 5)
-    20.1489
-    >>> round(longitude(hi), 5)
-    -156.21763
-    """
-    cenArea = []
-    for index in range(len(polygons)):
-        cenArea.append(find_centroid(polygons[index]))
-    cenx = 0
-    ceny = 0
-    totalArea = 0
-    for i in range (0, len(cenArea)):
-        cenx += (cenArea[i])[0] * (cenArea[i])[2]
-        ceny += (cenArea[i])[1] * (cenArea[i])[2]
-        totalArea += (cenArea[i])[2]
-    return make_position(cenx/totalArea, ceny/totalArea)
+def filter_tweets(tweets, term):
+    relevant_tweets = []
+    for tweet in tweets:
+        if(term.lower() in tweet_text(tweet).lower()):
+            relevant_tweets.append(tweet)
+    return relevant_tweets
+            
 
 ######################
 # "Sentiment" values #
@@ -239,10 +187,118 @@ def analyze_tweet_sentiment(tweet):
     average_sentiment = make_sentiment(average)
     return average_sentiment
 
+def average_sentiments(tweets_by_state):
+    """
+    Calculates the average sentiment of the states by averaging over all
+    the tweets from each state. Returns the result as a dictionary from state
+    names to average sentiment values.
+    """
+    averaged_state_sentiments = {}
+    totalSentiment = 0
+    count = 0
+    for state, tweets in tweets_by_state.items():
+        for tweet in tweets:
+            sentiment = analyze_tweet_sentiment(tweet)
+            if not ((sentiment == 0) or (sentiment == None)):
+                totalSentiment += sentiment
+                count += 1
+        if not(totalSentiment == 0):
+            averaged_state_sentiments[state] = (totalSentiment/count)
+        totalSentiment = 0
+        count = 0
+    return averaged_state_sentiments
+
+
+#################
+# Some Geometry #
+#################
+
+def find_centroid(polygon):
+    """
+    Finds the centroid of a polygon.
+    http://en.wikipedia.org/wiki/Centroid#Centroid_of_polygon
+    polygon -- A list of positions, in which the first and last are the same
+    Returns: 3 numbers; centroid latitude, centroid longitude, and polygon area
+    """
+    area = 0
+    x = 0
+    y = 0
+    for index in range (0, len(polygon)-1):
+        area += (latitude(polygon[index]) * longitude(polygon[index + 1])) - (latitude(polygon[index + 1]) * longitude(polygon[index]))
+    if(area == 0):
+        return latitude(polygon[0]), longitude(polygon[0]),0
+    for index in range (0, len(polygon)-1):
+        x += (latitude(polygon[index]) + latitude(polygon[index + 1])) * ((latitude(polygon[index])*longitude(polygon[index + 1])) - (latitude(polygon[index + 1])*longitude(polygon[index])))
+        y += (longitude(polygon[index]) + longitude(polygon[index + 1])) * ((latitude(polygon[index])*longitude(polygon[index + 1])) - (latitude(polygon[index + 1])*longitude(polygon[index])))
+    area = area/2
+    x = x/(6*area)
+    y = y/(6*area)
+    return (x, y, abs(area))
+
+def find_state_center(polygons):
+    """
+    Computes the geographic center of a state, averaged over its polygons.
+    The center is the average position of centroids of the polygons in 'polygons',
+    weighted by the area of those polygons.
+    Arguments: polygons -- a list of polygons
+    """
+    cenArea = []
+    for index in range(len(polygons)):
+        cenArea.append(find_centroid(polygons[index]))
+    cenx = 0
+    ceny = 0
+    totalArea = 0
+    for i in range (0, len(cenArea)):
+        cenx += (cenArea[i])[0] * (cenArea[i])[2]
+        ceny += (cenArea[i])[1] * (cenArea[i])[2]
+        totalArea += (cenArea[i])[2]
+    return make_position(cenx/totalArea, ceny/totalArea)
 
 ############
 # Graphics #
 ############
+# draw_centered_map, draw_state_sentiments, and part of draw_map_for_query taken from UC Berkeley's starter code
+
+def draw_centered_map(center_state='TX', n=10):
+    """Draw the n states closest to center_state."""
+    us_centers = {n: find_state_center(s) for n, s in us_states.items()}
+    center = us_centers[center_state.upper()]
+    dist_from_center = lambda name: geo_distance(center, us_centers[name])
+    for name in sorted(us_states.keys(), key=dist_from_center)[:int(n)]:
+        draw_state(us_states[name])
+        draw_name(name, us_centers[name])
+    draw_dot(center, 1, 10)  # Mark the center state with a red dot
+    wait()
+
+def draw_state_sentiments(state_sentiments):
+    """Draw all U.S. states in colors corresponding to their sentiment value.
+
+    Unknown state names are ignored; states without values are colored grey.
+
+    state_sentiments -- A dictionary from state strings to sentiment values
+    """
+    for name, shapes in us_states.items():
+        sentiment = state_sentiments.get(name, None)
+        draw_state(shapes, sentiment)
+    for name, shapes in us_states.items():
+        center = find_state_center(shapes)
+        if center is not None:
+            draw_name(name, center)
+
+def draw_map_for_query(tweets, term='my job'):
+    """
+    Draw the sentiment map corresponding to the tweets that contain term.
+    """
+    relevant_tweets = filter_tweets(tweets, term)
+    tweets_by_state = group_tweets_by_state(relevant_tweets)
+    state_sentiments = average_sentiments(tweets_by_state)
+    draw_state_sentiments(state_sentiments)
+    for tweet in relevant_tweets:
+        s = analyze_tweet_sentiment(tweet)
+        if has_sentiment(s):
+            display_tweet(tweet)
+            draw_dot(tweet_location(tweet), sentiment_value(s))
+    wait()
 
 
 ##################
@@ -251,13 +307,10 @@ def analyze_tweet_sentiment(tweet):
 
 tweets = retrieve_tweets("C:/Veronica - 2/Harvard Stuff/Sophomore Year/CS 105/CS105 Twitter/JSON Files/")
 
-
+'''
 for t in tweets:
     display_tweet(t)
-    
+   
 print_num_tweets_per_state(tweets)
-
-
-
-#plot tweets on map by bastardizing the sentiment stuff in trends
-#enumerate tweets per state?
+'''
+draw_map_for_query(tweets, 'trump')
