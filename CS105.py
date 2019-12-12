@@ -1,5 +1,5 @@
 #Veronica Tang
-#12/11/19
+#12/12/19
 
 import os
 import json
@@ -95,12 +95,13 @@ def print_num_tweets_per_state(tweets):
 
 
 #################
-# Some geometry #
+# Some Geometry #
 #################
 
 #TODO check that Baby Veronica did the math correctly
 def find_centroid(polygon):
-    """Find the centroid of a polygon.
+    """
+    Finds the centroid of a polygon.
     http://en.wikipedia.org/wiki/Centroid#Centroid_of_polygon
     polygon -- A list of positions, in which the first and last are the same
     Returns: 3 numbers; centroid latitude, centroid longitude, and polygon area
@@ -122,7 +123,7 @@ def find_centroid(polygon):
 
 #TODO check that Baby Veronica did the math correctly
 def find_state_center(polygons):
-    """Compute the geographic center of a state, averaged over its polygons.
+    """Computes the geographic center of a state, averaged over its polygons.
     The center is the average position of centroids of the polygons in 'polygons',
     weighted by the area of those polygons.
     Arguments:
@@ -152,30 +153,97 @@ def find_state_center(polygons):
         totalArea += (cenArea[i])[2]
     return make_position(cenx/totalArea, ceny/totalArea)
 
+######################
+# "Sentiment" values #
+######################
 
-#################
-# Miscellaneous #
-#################
+def tweet_words(tweet):
+    return extract_words(tweet_text(tweet))
 
-'''
-#map the ones with location data to Tweets
-coord = 0
-place = 0
-both = 0
-for i in range(0, len(all_data)):
-    tweet = data[i]
-    if(tweet['place'] != None):
-        place += 1
-    elif(tweet['coordinates'] != None):
-        both += 1
-        print(tweet['coordinates'])
-    if(tweet['coordinates'] != None):
-        coord += 1
-print(coord)
-print(place)
-print(both)
-'''
-#proves stuff only has place
+def next_not_ASCII(i, text):
+    for index in range(i, len(text)):
+        if not(text[index] in ascii_letters):
+            return index
+    return len(text)
+
+def extract_words(text):
+    """
+    Returns the words in a tweet, not including punctuation and numbers.
+    Split on whitespace and non-ascii characters
+    """
+    indexArr = []
+    asciiSection = text[0] in ascii_letters
+    if(asciiSection):
+        indexArr.append(0)
+    i = 0
+    while(i < len(text)):
+        if (text[i] in ascii_letters) and not(asciiSection):
+            indexArr.append(i)
+            asciiSection = True
+        elif not(text[i] in ascii_letters) and asciiSection:
+            asciiSection = False
+        i = i + 1
+    arr = []
+    if(len(indexArr) == 0):
+        if(asciiSection == True):
+            arr.append(text)
+        return arr
+    m = 0
+    x = indexArr[m]
+    while(x < len(text) and m < len(indexArr)):
+        arr.append(text[x: next_not_ASCII(x, text)])
+        if(m < len(indexArr) - 1):
+            m = m + 1
+            x = indexArr[m]
+        else:
+            break
+    return arr
+
+def make_sentiment(value):
+    """
+    Returns a sentiment, which represents a value that may not exist.
+    Assumes that sentiments range from -1 to 1.
+    """
+    assert value is None or (value >= -1 and value <= 1), 'Illegal value'
+    return value
+
+def has_sentiment(s):
+    return s is not None
+
+def sentiment_value(s):
+    assert has_sentiment(s), 'No sentiment value'
+    return s  
+
+def get_word_sentiment(word):
+    return make_sentiment(word_sentiments.get(word))
+
+def analyze_tweet_sentiment(tweet):
+    """
+    Returns a sentiment representing the degree of positive or negative
+    sentiment in the given tweet by averaging over all the words in the tweet
+    that have a sentiment value. Returns None if no words in the tweet has
+    a sentiment value.
+    """
+    average_sentiment = make_sentiment(None)
+    arr_words = tweet_words(tweet)
+    total_sentiment = 0
+    num_sentiments = 0
+    for w in arr_words:
+        sentiment = get_word_sentiment(w)
+        if has_sentiment(sentiment):
+            total_sentiment += sentiment_value(sentiment)
+            num_sentiments += 1
+    if(total_sentiment == 0):
+        return average_sentiment
+    average = total_sentiment/num_sentiments
+    average_sentiment = make_sentiment(average)
+    return average_sentiment
+
+
+############
+# Graphics #
+############
+
 
 ##################
 # Main program!! #
@@ -188,6 +256,7 @@ for t in tweets:
     display_tweet(t)
     
 print_num_tweets_per_state(tweets)
+
 
 
 #plot tweets on map by bastardizing the sentiment stuff in trends
