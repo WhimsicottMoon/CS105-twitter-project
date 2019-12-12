@@ -12,51 +12,14 @@ from string import ascii_letters
 from ucb import main, trace, interact, log_current_line
 
 
-####################
-# Parsing JSON data#
-####################
-'''
-TO DO - write a function that processes the JSON objects and turns them into tweets
-for now, just check if either "place" not = null or "coord" not = null
-if so, make tweet - handle, content, state, coord
-take "full_name" field and extract the state abreviation for state
-if "coordinates" not null, take exact long and lat, assign to state based on centroids
-else if place not null, find centroid of "bounding box" and assign that to long/lat
-add tweets to list
-return list
-
-Note that we unfortunately cannot use the loctions of the users since this seems like
-a field they fill out themselves - it does not always have the same information and is
-not formatted in any particular (or sometimes) understandable way
-'''
-
-#just get the JSON info from the files
-all_data = []
-path = "C:/Veronica - 2/Harvard Stuff/Sophomore Year/CS 105/CS105 Twitter/JSON Files/"
-for filename in os.listdir(path):
-    with open(path+filename) as read_file:
-        data = json.load(read_file)
-        all_data = all_data + data
-
-#map the ones with location data to Tweets
-for i in range(0, len(all_data)):
-    tweet = data[i]
-    #print(tweet)
-    if(tweet['place'] != None or tweet['coordinates'] != None):
-        non_bmp_map = dict.fromkeys(range(0x10000, sys.maxunicode + 1), 0xfffd)
-        print(str(tweet).translate(non_bmp_map))
-        #print(tweet)
-
-#to manually find viable tweets: place": {"id"
-
 ##########
 # Tweets #
 ##########
 
-def make_tweet(user, text, state, lat, lon):
-    return {'user': user, 'text': text, 'state': state, 'latitude': lat, 'longitude': lon}
+def make_tweet(user, text, state, position):
+    return {'user': user, 'text': text, 'state': state, 'position': position}
 
-def tweet_user(user):
+def tweet_user(tweet):
     return tweet['user']
 
 def tweet_text(tweet):
@@ -66,8 +29,11 @@ def tweet_state(tweet):
     return tweet['state']
 
 def tweet_location(tweet):
-    return make_position(tweet['latitude'], tweet['longitude'])
+    return tweet['position']
 
+def display_tweet(tweet):
+    print('User: ' + tweet_user(tweet) + ', Text: ' + tweet_text(tweet) + ', State: ' + tweet_state(tweet) + ', Tweet Location: ' + str(tweet_location(tweet)[0]) + ', ' + str(tweet_location(tweet)[1]) + '\n')
+    
 
 #################
 # Some geometry #
@@ -161,10 +127,65 @@ def find_state_center(polygons):
         totalArea += (cenArea[i])[2]
     return make_position(cenx/totalArea, ceny/totalArea)
 
+#################
+# Miscellaneous #
+#################
+
+'''
+#map the ones with location data to Tweets
+coord = 0
+place = 0
+both = 0
+for i in range(0, len(all_data)):
+    tweet = data[i]
+    if(tweet['place'] != None):
+        place += 1
+    elif(tweet['coordinates'] != None):
+        both += 1
+        print(tweet['coordinates'])
+    if(tweet['coordinates'] != None):
+        coord += 1
+print(coord)
+print(place)
+print(both)
+'''
+#proves stuff only has place
 
 ##################
 # Main program!! #
 ##################
+
+####################
+# Parsing JSON data#
+####################
+
+#just get the JSON info from the files
+all_data = []
+path = "C:/Veronica - 2/Harvard Stuff/Sophomore Year/CS 105/CS105 Twitter/JSON Files/"
+for filename in os.listdir(path):
+    with open(path+filename) as read_file:
+        data = json.load(read_file)
+        all_data = all_data + data
+
+tweets = []        
+#map the ones with location data to Tweets
+for i in range(0, len(all_data)):
+    tweet = data[i]
+    if(tweet['place'] != None):
+        user = tweet['user']['screen_name']
+        non_bmp_map = dict.fromkeys(range(0x10000, sys.maxunicode + 1), 0xfffd)
+        text = (tweet['text']).translate(non_bmp_map) #to deal with emojis
+        state = tweet['place']['full_name'][-2:]
+        polygon = [] #want to construct a polygon that is a list of positions, with first = last
+        for coord in tweet['place']['bounding_box']['coordinates'][0]:
+            polygon.append(make_position(coord[1], coord[0]))
+        first_coord = tweet['place']['bounding_box']['coordinates'][0][0]
+        polygon.append(make_position(first_coord[1], first_coord[0]))
+        position = find_centroid(polygon) #find the centroid of the bounding box
+        tweets.append(make_tweet(user, text, state, position))
+
+for t in tweets:
+    display_tweet(t)
 
 #plot tweets on map by bastardizing the sentiment stuff in trends
 #enumerate tweets per state?
