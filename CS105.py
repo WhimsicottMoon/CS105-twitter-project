@@ -1,5 +1,5 @@
 #Veronica Tang
-#12/08/19
+#12/11/19
 
 import os
 import json
@@ -31,7 +31,8 @@ def retrieve_tweets(path):
     #map the ones with location data to Tweets
     for i in range(0, len(all_data)):
         tweet = data[i]
-        if(tweet['place'] != None):
+        #if time would like to accomodate tweet['place']['place_type'] == 'admin', but that means making a dictionary of full state name to state abbreviation
+        if(tweet['place'] != None and tweet['place']['country_code'] == 'US' and tweet['place']['place_type'] == 'city'):
             user = tweet['user']['screen_name']
             non_bmp_map = dict.fromkeys(range(0x10000, sys.maxunicode + 1), 0xfffd)
             text = (tweet['text']).translate(non_bmp_map) #to deal with emojis
@@ -43,6 +44,8 @@ def retrieve_tweets(path):
             polygon.append(make_position(first_coord[1], first_coord[0]))
             position = find_centroid(polygon) #find the centroid of the bounding box
             tweets.append(make_tweet(user, text, state, position))
+            #display_tweet(make_tweet(user, text, state, position))
+    #print(len(tweets))
     return tweets
 
 
@@ -68,44 +71,32 @@ def tweet_location(tweet):
 def display_tweet(tweet):
     print('User: ' + tweet_user(tweet) + ', Text: ' + tweet_text(tweet) + ', State: ' + tweet_state(tweet) + ', Tweet Location: ' + str(tweet_location(tweet)[0]) + ', ' + str(tweet_location(tweet)[1]) + '\n')
     
+def group_tweets_by_state(tweets):
+    """
+    The keys of the returned dictionary are state names, and the values are
+    lists of tweets from that state.
+    """
+    tweets_by_state = {}
+    for tweet in tweets:
+        tweets_by_state.setdefault(tweet_state(tweet),[]).append(tweet)
+    return tweets_by_state
+
+def print_num_tweets_per_state(tweets):
+    #num = 0
+    state_names = us_states.keys()
+    tweets_by_state = group_tweets_by_state(tweets)
+    for s in state_names:
+        if s in tweets_by_state.keys():
+            #num += len(tweets_by_state[s])
+            print(s + ': ' + str(len(tweets_by_state[s])))
+        else:
+            print(s + ': 0')
+    #print(num)
+
 
 #################
 # Some geometry #
 #################
-
-def findClosestState(tweet, cenArr):
-    best = None
-    closestState = None
-    pos = tweet_location(tweet)
-    first = True
-    for state, cen in cenArr.items():
-        if first:
-            best = geo_distance(cen, pos)
-            closestState = state
-            first = False
-        else:
-            distance = geo_distance(cen, pos)
-            if distance<best:
-                best = distance
-                closestState = state
-    return closestState
-
-#TODO some of this functionality will go into the data processing
-#this function will change a lot to accomodate new representation of tweets
-def group_tweets_by_state(tweets):
-    """
-    The keys of the returned dictionary are state names, and the values are
-    lists of tweets that appear closer to that state center than any other.
-    """
-    tweets_by_state = {}
-    USA = {}
-    for n, s in us_states.items():
-        USA[n] = find_state_center(s)#USA becomes a dictionary of all states and their respective centers
-    for tweet in tweets:
-        stateName = findClosestState(tweet, USA)#we need to determine which state the tweet is from.... and I'm lazy and I hate nasty code so I'm making another method
-        tweets_by_state.setdefault(stateName,[]).append(tweet)#if there isn't a list already there, make one... if there is then append the tweet
-    return tweets_by_state
-
 
 #TODO check that Baby Veronica did the math correctly
 def find_centroid(polygon):
@@ -192,8 +183,12 @@ print(both)
 
 tweets = retrieve_tweets("C:/Veronica - 2/Harvard Stuff/Sophomore Year/CS 105/CS105 Twitter/JSON Files/")
 
+
 for t in tweets:
     display_tweet(t)
+    
+print_num_tweets_per_state(tweets)
+
 
 #plot tweets on map by bastardizing the sentiment stuff in trends
 #enumerate tweets per state?
