@@ -3,8 +3,10 @@
 from graphics import Canvas
 from geo import position_to_xy, us_states
 
+'''
 # A fixed gradient of sentiment colors from negative (blue) to positive (red)
 # Colors chosen via Cynthia Brewer's Color Brewer (colorbrewer2.com)
+
 SENTIMENT_COLORS = ["#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8",
                     "#FFFFFF", "#FEE090", "#FDAE61", "#F46D43", "#D73027",
                     "#A50026"]
@@ -13,6 +15,8 @@ SENTIMENT_COLORS = ["#22366A", "#3B596A", "#427676", "#3F9A82", "#77BFFF",
                     #"#ECDB60", "#F1B82D", "#FFDD22", "#FFAA11", "#FF8800"
                     "#ECDB60", "#FFDD22", "#FFAA11", "#FF8800", "#FF5500"
                     ]
+                    '''
+SENTIMENT_COLORS = ["#C50000", "#B10C19", "#9D1933", "#89264C", "#763366", "#62407F", "#4E4C99", "#3B59B2", "#2766CC", "#1373E5", "#0080FF", "#067FE2", "#0C7FC6", "#127FAA", "#187E8D", "#1E7E71", "#247E55", "#2A7D38", "#307D1C", "#377D00"]
 GRAY = "#AAAAAA"
 
 def get_sentiment_color(sentiment, sentiment_scale=4):
