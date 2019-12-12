@@ -1,4 +1,4 @@
-#Veronica Tang
+#Veronica Tang and Teagan Seltzer
 #12/12/19
 
 import os
@@ -30,7 +30,7 @@ def retrieve_tweets(path):
     tweets = []        
     #map the ones with location data to Tweets
     for i in range(0, len(all_data)):
-        tweet = data[i]
+        tweet = all_data[i]
         #if time would like to accomodate tweet['place']['place_type'] == 'admin', but that means making a dictionary of full state name to state abbreviation
         if(tweet['place'] != None and tweet['place']['country_code'] == 'US' and tweet['place']['place_type'] == 'city'):
             user = tweet['user']['screen_name']
@@ -45,7 +45,7 @@ def retrieve_tweets(path):
             position = find_centroid(polygon) #find the centroid of the bounding box
             tweets.append(make_tweet(user, text, state, position))
             #display_tweet(make_tweet(user, text, state, position))
-    #print(len(tweets))
+    print(len(all_data))
     return tweets
 
 
@@ -306,11 +306,11 @@ def draw_map_for_query(tweets, term='my job'):
 ##################
 
 tweets = retrieve_tweets("C:/Veronica - 2/Harvard Stuff/Sophomore Year/CS 105/CS105 Twitter/JSON Files/")
+print(len(tweets))
+print_num_tweets_per_state(tweets)
+draw_map_for_query(tweets, 'rep')
 
 '''
 for t in tweets:
     display_tweet(t)
-   
-print_num_tweets_per_state(tweets)
 '''
-draw_map_for_query(tweets, 'trump')
